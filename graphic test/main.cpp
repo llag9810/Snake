@@ -310,17 +310,22 @@ void printGameOver(int a) {
 	outtextxy(295, 200, "你挂了");
 	settextstyle(40, 0, "微软雅黑");
 	if (a == WALL) {
-		outtextxy(290, 350, "死因：翻墙未遂");
+		outtextxy(290, 320, "原因：撞墙身亡");
 	}
 	else if (a == SNAKE) {
-		outtextxy(290, 350, "死因：自残身亡");
+		outtextxy(290, 320, "原因：自杀身亡");
 	}
 	else if (a == HUNGRY) {
-		outtextxy(290, 350, "死因：生命耗尽");
+		outtextxy(290, 320, "原因：生命耗尽");
 	}
 	else if (a == TOOSHORT) {
-		outtextxy(290, 350, "死因：蛇身太短");
+		outtextxy(290, 320, "原因：蛇身太短");
 	}
+	char string[5];
+	sprintf_s(string, "%d", score);
+	outtextxy(290, 380, "得分：");
+	outtextxy(400, 380, string);
+	
 	Sleep(1500);
 	settextstyle(40, 0, "微软雅黑");
 	outtextxy(265, 450, "按任意键返回主菜单");
@@ -432,7 +437,7 @@ void setDrug(int stage) {
 	for (i = 0; i < 3*stage; i++) {
 		drug[i].x = (rand() % 26) + 1;
 		drug[i].y = (rand() % 26) + 1;
-		while (map[drug[i].x][drug[i].y]) {  //当坐标为0时说明地图上这一点为空，生成食物。否则重新循环。-
+		while (map[drug[i].x][drug[i].y]) {
 			drug[i].x = rand() % 26 + 1;
 			drug[i].y = rand() % 26 + 1;
 		}
@@ -447,11 +452,29 @@ void delDrug(int stage) {
 	int i;
 	for (i = 0; i < 3*stage; i++) {
 		map[drug[i].x][drug[i].y] = NOTHING;
-		clearcircle(20 * drug[i].x + 30, 20 * drug[i].y + 30, 9);
+		clearcircle(20 * drug[i].x + 30, 20 * drug[i].y + 30, 7);
 		drug[i].x = 0;
 		drug[i].y = 0;
 	}
 	drugExist = 0;
+}
+
+void drugTwinkle(void)
+{
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3 * stage; j++)
+		{
+			clearcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
+		}
+		Sleep(30);
+		for (int j = 0; j < 3 * stage; j++)
+		{
+			setfillcolor(GREEN);
+			solidcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
+		}
+
+	}
 }
 
 void setBomb(int stage) {
@@ -614,11 +637,14 @@ void congratulation(int stage) {
 		outtextxy(260, 200, "恭喜通关");
 		settextstyle(40, 0, "微软雅黑");
 		outtextxy(285, 450, "3秒后进入下一关");
-		gameOver = 0;
-		Sleep(3000);
 	}
-	else outtextxy(285, 450, "恭喜通全关");
-
+	else
+	{
+		outtextxy(260, 200, "恭喜通全关");
+		outtextxy(285, 450, "3秒后返回主菜单");
+	}
+	gameOver = 0;
+	Sleep(3000);
 }
 
 void gotoNextStage(void) {
@@ -645,13 +671,13 @@ void gamePlay(int stage) {
 	int sleepTime;
 	switch (stage) {
 	case easy:
-		sleepTime = 300;
-		break;
-	case normal:
 		sleepTime = 200;
 		break;
+	case normal:
+		sleepTime = 100;
+		break;
 	case hard:
-		sleepTime = 150;
+		sleepTime = 50;
 		break;
 	default:
 		break;
@@ -661,12 +687,15 @@ void gamePlay(int stage) {
 	Sleep(2000);
 	while (1) {
 		setFood();
-		if (time(NULL) % 5 == 1 && !drugExist) {
+		if (time(NULL) % 10 == 1 && !drugExist) {
 			setDrug(stage);
 		}
-		else if (time(NULL) % 5 == 4 && drugExist) {
+		else if (time(NULL) % 10 == 9 && drugExist) {
 			delDrug(stage);
 		}
+		if (drugExist)
+			drugTwinkle();
+		else Sleep(90);
 
 		getKeyboard();
 		move();
@@ -677,10 +706,12 @@ void gamePlay(int stage) {
 	}
 }
 
-int main(void) { 
+int main(void) 
+{ 
 	initgraph(800, 600);
 	int menuSelection;
-	while(1){
+	while(1)
+	{
 		cleardevice();
 		menuSelection = mainMenu();
 		switch (menuSelection) 
