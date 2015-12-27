@@ -53,6 +53,14 @@ enum stage {
 	easy = 1, normal, hard, allClear
 }stage;
 
+void saveRankingList(char *name, int score) {
+	if (FILE *fp1 = fopen("RankingList.rec", "a+")) {
+		fwrite(name, sizeof(name), 1, fp1);
+		fwrite(&score, sizeof(int), 1, fp1);
+		fclose(fp1);
+	}
+}
+
 int mainMenu(void) {   //主菜单
 	FlushMouseMsgBuffer();
 	setbkcolor(RGB(190, 231, 233));
@@ -321,11 +329,16 @@ void printGameOver(int a) {
 	else if (a == TOOSHORT) {
 		outtextxy(290, 320, "原因：蛇身太短");
 	}
-	char string[5];
-	sprintf_s(string, "%d", score);
+	char finalScore[5];
+	sprintf_s(finalScore, "%d", score);
 	outtextxy(290, 380, "得分：");
-	outtextxy(400, 380, string);
+	outtextxy(400, 380, finalScore);
 	
+	char playerName[10];
+	InputBox(playerName, 9, "Plase input your name\n(Less than 9 characters)", "Input Name", NULL, 0, 0, true);
+
+	saveRankingList(playerName, score);
+
 	Sleep(1500);
 	settextstyle(40, 0, "微软雅黑");
 	outtextxy(265, 450, "按任意键返回主菜单");
@@ -407,6 +420,7 @@ void addNode(int x, int y) {
 	head = newNode;
 	head->x = x;
 	head->y = y;
+
 	if (map[x][y] != WALL) {
 		map[x][y] = SNAKE;
 		setfillcolor(RGB(180, 186, 20));
@@ -465,13 +479,16 @@ void drugTwinkle(void)
 	{
 		for (int j = 0; j < 3 * stage; j++)
 		{
-			clearcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
+			if (drug[j].x && drug[j].y)
+			    clearcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
 		}
 		Sleep(30);
 		for (int j = 0; j < 3 * stage; j++)
 		{
-			setfillcolor(GREEN);
-			solidcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
+			if (drug[j].x && drug[j].y) {
+				setfillcolor(GREEN);
+				solidcircle(20 * drug[j].x + 30, 20 * drug[j].y + 30, 7);
+			}
 		}
 
 	}
@@ -529,17 +546,21 @@ void move(void) {       //根据当前方向移动并且响应判断结果
 		foodExist = 0;
 		++length;
 		score += 10;
+		food.x = food.y = 0;
 	}
 	else if (checkStatus(x, y) == BOMB) {
-		int i;
 		addNode(x, y);
 		delNode();
-		for (i = 1; i <= (length+1) / 2; i++) {
+		for (int i = 1; i <= (length+1) / 2; i++) {
 			delNode();
 		}
 		length = length / 2;
 		score = score / 2;
 		remainingBomb--;
+		for (int i = 1; i < 3 * stage; i++) {
+			if (x == bomb[i].x && y == bomb[i].y)
+				bomb[i].x = bomb[i].y = 0;
+		}
 	}
 	else if (checkStatus(x, y) == DRUG) {
 
@@ -548,6 +569,11 @@ void move(void) {       //根据当前方向移动并且响应判断结果
 		delNode();
 		--length;
 		score -= 10;
+		for (int i = 1; i < 3 * stage; i++)
+		{
+			if (x == drug[i].x && y == drug[i].y)
+				drug[i].x = drug[i].y = 0;
+		}
 	}
 	else if(checkStatus(x,y) == WALL) {
 		gameOver = 1;
