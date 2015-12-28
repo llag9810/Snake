@@ -42,7 +42,7 @@ struct food {   //食物结构体
 	int x, y;
 }food, drug[9], bomb[9];
 
-enum direction {   //方向枚举
+enum direction {
 	up,
 	down,
 	left,
@@ -50,13 +50,17 @@ enum direction {   //方向枚举
 }direction;
 
 enum stage {
-	easy = 1, normal, hard, allClear
+	easy = 1,
+	normal, 
+	hard, 
+	allClear
 }stage;
 
 void saveRankingList(char *name, int score) {
-	if (FILE *fp1 = fopen("RankingList.rec", "a+")) {
-		fwrite(name, sizeof(name), 1, fp1);
-		fwrite(&score, sizeof(int), 1, fp1);
+	FILE *fp1;
+	errno_t err;
+	if (!(err = fopen_s(&fp1, "ranklist", "a+"))) {
+		fprintf_s(fp1, "%d,%s\n", score, name);
 		fclose(fp1);
 	}
 }
@@ -152,23 +156,55 @@ void loadGame(void) {    //载入游戏（未完成）
 	_getch();
 }
 
-void printrankingList(void)   //排行榜（未完成）
+void printrankingList(void)
 {
 	cleardevice();
-	settextstyle(30, 0, _T("黑体"));
-	outtextxy(325, 120, "敬请期待(任意键退出)");
+	FILE *fp;
+	int highscore, higherscore, tempscore;
+	char tempname[10], winnername[10],scoreString[5];
+	for (int j = 0, higherscore = 9999999; j < 5; j++)
+	{
+		fp = fopen("ranklist", "r");
+		for (highscore = 0; fscanf(fp, "%d,%s", &tempscore, tempname) != EOF;)
+		{
+			if (tempscore >= highscore && tempscore<higherscore)
+			{
+				highscore = tempscore;
+				for (int i = 0; i <= 9; i++) winnername[i] = tempname[i];
+			}
+		}
+		sprintf_s(scoreString, "%d", highscore);
+		outtextxy(370, 200 + 70 * j, winnername);
+		outtextxy(550, 200 + 70 * j, scoreString);
+		higherscore = highscore;
+		fclose(fp);
+	}
+	setcolor(RGB(70, 77, 89));
+	settextstyle(45, 0, _T("微软雅黑"));
+	outtextxy(350, 75, "排行榜");
+	settextstyle(30, 0, _T("微软雅黑"));
+	outtextxy(165, 150, "顺序");
+	outtextxy(375, 150, "名称");
+	outtextxy(550, 150, "得分");
+	outtextxy(170, 200, "1");
+	outtextxy(170, 270, "2");
+	outtextxy(170, 340, "3");
+	outtextxy(170, 410, "4");
+	outtextxy(170, 480, "5");
 	_getch();
 }
 
 
-void initSnake(void)	 {    //初始化蛇身，包括蛇链表的构建和蛇身的初始坐标
+void initSnake(void)
+{    //初始化蛇身，包括蛇链表的构建和蛇身的初始坐标
 	int i;
 	struct snake *newNode, *current;
 
 	head = (struct snake *)malloc(sizeof(struct snake));
 	head->previous = NULL;
 	current = head;
-	for (i = 1; i < STARTLEN; i++) {
+	for (i = 1; i < STARTLEN; i++)
+	{
 		newNode = (struct snake *)malloc(sizeof(struct snake));
 		current->next = newNode;
 		newNode->previous = current;
@@ -179,7 +215,8 @@ void initSnake(void)	 {    //初始化蛇身，包括蛇链表的构建和蛇身的初始坐标
 
 	int m = 15, n = 15;
 	current = head;
-	while (current != NULL) {
+	while (current != NULL) 
+	{
 		current->x = m;
 		current->y = n;
 		map[m][n] = SNAKE;
@@ -310,7 +347,8 @@ void initialPrint(void) {     //打印起始元素。包括地图，蛇身和游戏信息
 	}
 }
 
-void printGameOver(int a) {
+void printGameOver(int a) 
+{
 	cleardevice();
 	settextstyle(100, 0, "微软雅黑");
 	setcolor(RGB(70, 77, 89));
@@ -336,7 +374,6 @@ void printGameOver(int a) {
 	
 	char playerName[10];
 	InputBox(playerName, 9, "Plase input your name\n(Less than 9 characters)", "Input Name", NULL, 0, 0, true);
-
 	saveRankingList(playerName, score);
 
 	Sleep(1500);
@@ -766,7 +803,7 @@ int main(void)
 		default:
 			break;
 		}
-		clearData();
+  		clearData();
 	}
 	return 0;
  }
