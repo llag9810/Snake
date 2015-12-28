@@ -174,23 +174,25 @@ void printrankingList(void)
 			}
 		}
 		sprintf_s(scoreString, "%d", highscore);
-		outtextxy(370, 200 + 70 * j, winnername);
-		outtextxy(550, 200 + 70 * j, scoreString);
+		outtextxy(370, 200 + 60 * j, winnername);
+		outtextxy(560, 200 + 60 * j, scoreString);
 		higherscore = highscore;
 		fclose(fp);
 	}
 	setcolor(RGB(70, 77, 89));
 	settextstyle(45, 0, _T("Œ¢»Ì—≈∫⁄"));
-	outtextxy(350, 75, "≈≈––∞Ò");
+	outtextxy(350, 65, "≈≈––∞Ò");
 	settextstyle(30, 0, _T("Œ¢»Ì—≈∫⁄"));
 	outtextxy(165, 150, "À≥–Ú");
 	outtextxy(375, 150, "√˚≥∆");
 	outtextxy(550, 150, "µ√∑÷");
 	outtextxy(170, 200, "1");
-	outtextxy(170, 270, "2");
-	outtextxy(170, 340, "3");
-	outtextxy(170, 410, "4");
-	outtextxy(170, 480, "5");
+	outtextxy(170, 260, "2");
+	outtextxy(170, 320, "3");
+	outtextxy(170, 380, "4");
+	outtextxy(170, 440, "5");
+	settextstyle(45, 0, ("Œ¢»Ì—≈∫⁄"));
+	outtextxy(290, 520, "∞¥»Œ“‚º¸∑µªÿ");
 	_getch();
 }
 
