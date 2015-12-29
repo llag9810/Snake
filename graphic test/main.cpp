@@ -72,7 +72,7 @@ int mainMenu(void) {   //主菜单
 	MOUSEMSG m;
 	settextcolor(RGB(19, 134, 232));
 	settextstyle(65, 0, _T("微软雅黑"));
-	outtextxy(275, 75, "聪明的小蛇");
+	outtextxy(325, 75, "贪吃蛇");
 	for (int i = 200; i < 450; i += 80)
 	{
 		setcolor(RGB(70, 77, 89));
@@ -106,6 +106,73 @@ int mainMenu(void) {   //主菜单
 			}
 		}
 	}
+}
+
+void saveGame(void) {
+	outtextxy(640, 530, "保存中....");
+	FILE *fp;
+	fp = fopen("savedata", "w");
+	fprintf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", stage, score, length, foodExist, drugExist, life, remainingBomb, direction);
+	fprintf(fp, "%d,%d\n", food.x, food.y);
+	for (int i = 0; i < 3 * stage; i++) {
+		fprintf(fp, "%d,%d\n", drug[i].x, drug[i].y);
+	}
+	for (int i = 0; i < 3 * stage; i++) {
+		fprintf(fp, "%d,%d\n", bomb[i].x, bomb[i].y);
+	}
+
+	for (int i = 0; i < MAPSIZE; i++)
+		for (int j = 0; j < MAPSIZE;j++)
+			fprintf(fp, "%d,", map[i][j]);
+	struct snake *current;
+	current = head;
+	while (current != NULL) {
+		fprintf(fp, "%d,%d\n", current->x, current->y);
+		current = current->next;
+	}
+	fclose(fp);
+	Sleep(2000);
+	clearrectangle(610, 610, 795, 595);
+	outtextxy(640, 530, "保存成功");
+	Sleep(1000);
+}
+
+void loadGame(void) {
+	cleardevice();
+	settextstyle(65, 0, _T("微软雅黑"));
+	outtextxy(300, 250, "读取中....");
+	FILE *fp;
+	fp = fopen("savedata", "r");
+	fscanf(fp, "%d,%d,%d,%d,%d,%d,%d,%d\n", &stage, &score, &length, &foodExist, &drugExist, &life, &remainingBomb,&direction);
+	fscanf(fp, "%d,%d\n", &food.x, &food.y);
+	for (int i = 0; i < 3 * stage; i++) {
+		fscanf(fp, "%d,%d\n", &drug[i].x, &drug[i].y);
+	}
+	for (int i = 0; i < 3 * stage; i++) {
+		fscanf(fp, "%d,%d\n", &bomb[i].x, &bomb[i].y);
+	}
+	for (int i = 0; i < MAPSIZE; i++)
+		for (int j = 0; j < MAPSIZE; j++)
+			fscanf(fp, "%d,", &map[i][j]);
+
+	struct snake *current,*newNode;
+	head = (struct snake *)malloc(sizeof(struct snake));
+	head->previous = NULL;
+	current = head;
+	while (fscanf(fp, "%d,%d\n", &current->x, &current->y) != EOF) {
+		newNode = (struct snake *)malloc(sizeof(struct snake));
+		current->next = newNode;
+		newNode->previous = current;
+		current = newNode;
+	}
+	tail = current->previous;
+	free(current);
+	tail->next = NULL;
+	fclose(fp);
+	Sleep(1000);
+	outtextxy(300, 250, "读取完毕");
+	Sleep(1000);
+	cleardevice();
 }
 
 void selectStage(void) {
@@ -149,13 +216,6 @@ void selectStage(void) {
 	}
 }
 
-void loadGame(void) {    //载入游戏（未完成）
-	cleardevice();
-	settextstyle(30, 0, _T("黑体"));
-	outtextxy(325, 120, "敬请期待(任意键退出)");
-	_getch();
-}
-
 void printrankingList(void)
 {
 	cleardevice();
@@ -195,7 +255,6 @@ void printrankingList(void)
 	outtextxy(290, 520, "按任意键返回");
 	_getch();
 }
-
 
 void initSnake(void)
 {    //初始化蛇身，包括蛇链表的构建和蛇身的初始坐标
@@ -268,7 +327,7 @@ void clearData(void) {
 
 	direction = up;
 	pause = 0, gameOver = 0, length = STARTLEN, key = UP;
-	foodExist = 0, drugExist = 0;
+	foodExist = 0, drugExist = 0, remainingBomb = 0;
 	life = 60;
 	for (int i = 0; i < MAPSIZE; i++) {
 		for (int j = 0; j < MAPSIZE; j++) {
@@ -299,6 +358,18 @@ void initialPrint(void) {     //打印起始元素。包括地图，蛇身和游戏信息
 			if (map[i][j] == WALL) {
 				setfillcolor(RED);
 				solidrectangle(x - 10, y - 10, x + 10, y + 10);
+			}
+			else if (map[i][j] == FOOD) {
+				setfillcolor(BLUE);
+				solidcircle(x, y, 7);
+			}
+			else if (map[i][j] == BOMB) {
+				setfillcolor(BLACK);
+				solidcircle(x, y, 7);
+			}
+			else if (map[i][j] == DRUG) {
+				setfillcolor(GREEN);
+				solidcircle(x, y, 7);
 			}
 		}
 	}
@@ -408,6 +479,14 @@ void getKeyboard(void) {    // 响应键盘操作
 		if (direction != left) {
 			direction = right;
 		} break;
+	case 'S':
+		saveGame();
+		key = 0;
+		break;
+	case 's':
+		saveGame();
+		key = 0;
+		break;
 	case ' ':            // 空格键暂停
 		if (!pause) {
 			_getch();
@@ -418,7 +497,7 @@ void getKeyboard(void) {    // 响应键盘操作
 	}
 }
 
-int checkStatus(int x, int y) {     //检测沿当前方向行驶下一步将要出现的内容并作出判断
+int checkNextMove(int x, int y) {     //检测沿当前方向行驶下一步将要出现的内容并作出判断
 	if (life > 0 && length >= 2) {
 		if (map[x][y] == WALL)
 			return WALL;
@@ -536,7 +615,7 @@ void drugTwinkle(void)
 void setBomb(int stage) {
 	int i;
 	srand((unsigned)time(NULL));
-	for (i = 0; i < 3*stage; i++) {
+	for (i = 0; i < 3 * stage; i++) {
 		bomb[i].x = (rand() % 26) + 1;
 		bomb[i].y = (rand() % 26) + 1;
 		while (map[bomb[i].x][bomb[i].y]) { 
@@ -570,24 +649,24 @@ void move(void) {       //根据当前方向移动并且响应判断结果
 		break;
 	}
 	if (stage == hard) {
-		if (checkStatus(x, y) == FOOD) {
+		if (checkNextMove(x, y) == FOOD) {
 			life = 60;
 		}
 		else life--;
 	}
-	if (checkStatus(x, y) == NOTHING) {
+	if (checkNextMove(x, y) == NOTHING) {
 		map[head->x][head->y] = 2;
 		addNode(x, y);          //增加一个头结点，删除一个尾结点。表示向前走
 		delNode();
 	}
-	else if (checkStatus(x, y) == FOOD) {
+	else if (checkNextMove(x, y) == FOOD) {
 		addNode(x, y);          //当吃到食物时，只增加不删除	
 		foodExist = 0;
 		++length;
 		score += 10;
 		food.x = food.y = 0;
 	}
-	else if (checkStatus(x, y) == BOMB) {
+	else if (checkNextMove(x, y) == BOMB) {
 		addNode(x, y);
 		delNode();
 		for (int i = 1; i <= (length+1) / 2; i++) {
@@ -596,37 +675,37 @@ void move(void) {       //根据当前方向移动并且响应判断结果
 		length = length / 2;
 		score = score / 2;
 		remainingBomb--;
-		for (int i = 1; i < 3 * stage; i++) {
+		for (int i = 0; i < 3 * stage; i++) {
 			if (x == bomb[i].x && y == bomb[i].y)
 				bomb[i].x = bomb[i].y = 0;
 		}
 	}
-	else if (checkStatus(x, y) == DRUG) {
+	else if (checkNextMove(x, y) == DRUG) {
 
 		addNode(x, y);
 		delNode();
 		delNode();
 		--length;
 		score -= 10;
-		for (int i = 1; i < 3 * stage; i++)
+		for (int i = 0; i < 3 * stage; i++)
 		{
 			if (x == drug[i].x && y == drug[i].y)
 				drug[i].x = drug[i].y = 0;
 		}
 	}
-	else if(checkStatus(x,y) == WALL) {
+	else if(checkNextMove(x,y) == WALL) {
 		gameOver = 1;
 		printGameOver(WALL);
 	}
-	else if (checkStatus(x, y) == SNAKE) {
+	else if (checkNextMove(x, y) == SNAKE) {
 		gameOver = 1;
 		printGameOver(SNAKE);
 	}
-	else if (checkStatus(x, y) == HUNGRY) {
+	else if (checkNextMove(x, y) == HUNGRY) {
 		gameOver = 1;
 		printGameOver(HUNGRY);
 	}
-	else if (checkStatus(x, y) == TOOSHORT) {
+	else if (checkNextMove(x, y) == TOOSHORT) {
 		gameOver = 1;
 		printGameOver(TOOSHORT);
 	}
@@ -677,8 +756,8 @@ void printGameInfo(void) {
 			sprintf_s(string3, "%d / 60", life);
 		}
 		outtextxy(700, 445, string3);
-
 	}
+	outtextxy(620, 497, "按“S”键保存进度");
 }
 
 int win(int stage){
@@ -747,8 +826,6 @@ void gamePlay(int stage) {
 	default:
 		break;
 	}
-	setFood();
-	setBomb(stage);
 	Sleep(2000);
 	while (1) {
 		setFood();
@@ -788,12 +865,21 @@ int main(void)
 				initMap(stage);
 				initSnake();
 				initialPrint();
+				setFood();
+				setBomb(stage);
 				gamePlay(stage);
 				gotoNextStage();
 			}
 			break;
 		case LOADGAME:
+			clearData();
 			loadGame();
+			while (!gameOver && stage != allClear)
+			{
+				initialPrint();
+				gamePlay(stage);
+				gotoNextStage();
+			}
 			break;
 		case RANKINGLIST:
 			printrankingList();
